@@ -1,0 +1,1706 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AURAT ADVENTURE – The Lost Kingdom</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <style>
+        /* ==========================================================================
+           GAYA ANTARA MUKA PERMAINAN VIDEO (STYLE.CSS)
+           ========================================================================== */
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+        }
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #0F172A;
+            font-family: 'Nunito', sans-serif;
+        }
+        h1, h2, h3, .font-game {
+            font-family: 'Fredoka', sans-serif;
+        }
+        #game-wrapper {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #090D16;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        /* Butang Gaya Konsol Permainan */
+        .game-btn {
+            font-family: 'Fredoka', sans-serif;
+            border-radius: 16px;
+            border: 3px solid rgba(255,255,255,0.45);
+            transition: transform 0.1s ease, filter 0.15s ease;
+            cursor: pointer;
+            box-shadow: 0 5px 0 rgba(0,0,0,0.35);
+        }
+        .game-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 1px 0 rgba(0,0,0,0.35);
+        }
+        /* Kawalan Sentuh (Mobile Touch Controls) */
+        .touch-pad-btn {
+            width: 62px;
+            height: 62px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.22);
+            border: 3px solid rgba(255, 255, 255, 0.55);
+            backdrop-filter: blur(4px);
+            color: white;
+            font-family: 'Fredoka', sans-serif;
+            font-weight: 700;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            touch-action: manipulation;
+        }
+        .touch-pad-btn:active, .touch-pad-btn.pressed {
+            background: rgba(251, 191, 36, 0.65);
+            border-color: #FDE047;
+            transform: scale(0.92);
+        }
+        /* Item Dress-Up / Puzzle Interaktif */
+        .wardrobe-card {
+            border: 3px solid #334155;
+            background: #1E293B;
+            border-radius: 16px;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .wardrobe-card:hover {
+            border-color: #38BDF8;
+            transform: translateY(-2px);
+        }
+        .wardrobe-card.selected {
+            border-color: #10B981;
+            background: rgba(16, 185, 129, 0.2);
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-wrapper">
+    <!-- KANVAS UTAMA DUNIA PERMAINAN PLATFORMER -->
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- HUD ATAS (STATUS PEMAIN DALAM DUNIA PERMAINAN) -->
+    <div id="hud-overlay" class="absolute top-3 left-3 right-3 flex flex-wrap items-center justify-between gap-2 pointer-events-none z-10 hidden">
+        <!-- Kiri: Nyawa, Syiling, Bintang & Item Pintu -->
+        <div class="flex flex-wrap items-center gap-2 pointer-events-auto">
+            <div class="bg-slate-900/85 backdrop-blur border-2 border-slate-600 px-3 py-1.5 rounded-2xl flex items-center gap-2 text-white">
+                <span class="text-rose-400 font-game font-bold text-xs sm:text-sm">NYAWA:</span>
+                <div id="hud-lives" class="flex gap-1"></div>
+            </div>
+            <div class="bg-slate-900/85 backdrop-blur border-2 border-yellow-400/70 px-3 py-1.5 rounded-2xl flex items-center gap-1.5 text-yellow-300 font-game font-bold text-xs sm:text-sm">
+                <span>SYILING:</span>
+                <span id="hud-coins">0</span>
+            </div>
+            <div class="bg-slate-900/85 backdrop-blur border-2 border-amber-500/70 px-3 py-1.5 rounded-2xl flex items-center gap-1.5 text-amber-300 font-game font-bold text-xs sm:text-sm">
+                <span>BINTANG:</span>
+                <span id="hud-stars">0</span>
+            </div>
+            <div class="bg-slate-900/85 backdrop-blur border-2 border-sky-500/70 px-3 py-1.5 rounded-2xl flex items-center gap-1.5 text-sky-300 font-game font-bold text-xs sm:text-sm">
+                <span>ITEM MISI:</span>
+                <span id="hud-items">0/0</span>
+            </div>
+        </div>
+
+        <!-- Tengah: Nama Kawasan / Level -->
+        <div class="bg-slate-900/85 backdrop-blur border-2 border-emerald-400/70 px-4 py-1.5 rounded-2xl text-center">
+            <div id="hud-level-name" class="font-game font-bold text-emerald-300 text-xs sm:text-base tracking-wide">
+                LEVEL 1 – THE VILLAGE
+            </div>
+            <div id="hud-objective" class="text-[11px] sm:text-xs text-slate-200 font-bold">
+                Objektif: Kumpul 3 Pakaian Sopan & Bantu Aisyah
+            </div>
+        </div>
+
+        <!-- Kanan: Audio & Pause -->
+        <div class="flex items-center gap-2 pointer-events-auto">
+            <button onclick="AudioFX.toggleMute()" id="btn-mute" class="game-btn bg-slate-800 text-white px-3 py-1.5 text-xs sm:text-sm font-bold">
+                MUZIK: ON
+            </button>
+            <button onclick="GameEngine.togglePause()" class="game-btn bg-amber-500 text-slate-950 px-3 py-1.5 text-xs sm:text-sm font-bold">
+                PAUSE (ESC)
+            </button>
+        </div>
+    </div>
+
+    <!-- PROMPT INTERAKSI TERAPUNG (APABILA DEKAT NPC / OBJEK / PINTU) -->
+    <div id="interact-prompt" class="absolute bottom-24 sm:bottom-10 left-1/2 -translate-x-1/2 bg-slate-900/95 border-2 border-amber-400 text-amber-300 font-game font-bold px-5 py-2 rounded-full text-sm sm:text-base shadow-lg hidden pointer-events-none z-10 animate-bounce">
+        Tekan [E] atau Butang AKSI untuk berinteraksi
+    </div>
+
+    <!-- KAWALAN SENTUH (UNTUK TELEFON PINTAR & TABLET) -->
+    <div id="mobile-controls" class="absolute bottom-4 left-4 right-4 flex items-end justify-between z-10 md:hidden pointer-events-none">
+        <div class="flex gap-3 pointer-events-auto">
+            <button id="touch-left" class="touch-pad-btn" aria-label="Kiri">◀</button>
+            <button id="touch-right" class="touch-pad-btn" aria-label="Kanan">▶</button>
+        </div>
+        <div class="flex gap-3 pointer-events-auto">
+            <button id="touch-interact" class="touch-pad-btn bg-amber-500/40 border-amber-300 text-amber-200 text-xs" aria-label="Interaksi">AKSI</button>
+            <button id="touch-jump" class="touch-pad-btn bg-emerald-500/40 border-emerald-300 text-emerald-200 text-xs" aria-label="Lompat">LOMPAT</button>
+        </div>
+    </div>
+
+    <!-- SKRIN MULA (TITLE SCREEN) -->
+    <div id="start-screen" class="absolute inset-0 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4 z-20">
+        <div class="max-w-xl w-full bg-slate-900 border-4 border-amber-400 rounded-3xl p-6 sm:p-8 text-center shadow-2xl">
+            <div class="inline-block bg-emerald-500/20 border border-emerald-400 text-emerald-300 font-game text-xs sm:text-sm px-4 py-1 rounded-full mb-3">
+                PENDIDIKAN ISLAM TAHUN 4 • 2.5D PLATFORMER ADVENTURE
+            </div>
+            <h1 class="font-game text-3xl sm:text-5xl font-bold text-amber-400 tracking-wide drop-shadow">
+                AURAT ADVENTURE
+            </h1>
+            <h2 class="font-game text-lg sm:text-2xl font-bold text-sky-300 mb-4">
+                THE LOST KINGDOM
+            </h2>
+            <p class="text-slate-300 text-sm sm:text-base mb-5 leading-relaxed">
+                Kawal <strong>Wira Rayyan</strong> merentasi 4 dunia misteri! Berlari, melompat melepasi gaung & platform bergerak, temui laluan tersembunyi, kumpul pakaian sopan, bantu penduduk kampung, dan buka Portal Kerajaan!
+            </p>
+
+            <!-- Panduan Kawalan -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-slate-800/90 p-3 rounded-2xl border border-slate-700 mb-6 text-xs text-slate-200">
+                <div><span class="text-amber-400 font-bold block">[A / D / ◀ ▶]</span>Gerak Kiri & Kanan</div>
+                <div><span class="text-emerald-400 font-bold block">[SPACE / W]</span>Melompat</div>
+                <div><span class="text-sky-400 font-bold block">[E / AKSI]</span>Interaksi / Buka</div>
+                <div><span class="text-rose-400 font-bold block">[ESC]</span>Pause Game</div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-3 justify-center">
+                <button onclick="GameEngine.startGame(0)" class="game-btn bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-8 py-3.5 text-lg sm:text-xl flex-1">
+                    MULA PENGEMBARAAN
+                </button>
+                <button onclick="GameEngine.showLevelSelect()" class="game-btn bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold px-5 py-3.5 text-base">
+                    PILIH DUNIA
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL PILIH LEVEL -->
+    <div id="level-select-modal" class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4 z-30">
+        <div class="max-w-lg w-full bg-slate-900 border-4 border-sky-400 rounded-3xl p-6 text-center">
+            <h2 class="font-game text-2xl font-bold text-sky-300 mb-4">PILIH KAWASAN PENGEMBARAAN</h2>
+            <div class="space-y-2.5 mb-5">
+                <button onclick="GameEngine.startGame(0)" class="game-btn w-full bg-emerald-600 text-white py-3 px-4 text-left font-bold flex justify-between items-center">
+                    <span>LEVEL 1: THE VILLAGE (Kampung Cahaya)</span><span>MULA ▶</span>
+                </button>
+                <button onclick="GameEngine.startGame(1)" class="game-btn w-full bg-indigo-600 text-white py-3 px-4 text-left font-bold flex justify-between items-center">
+                    <span>LEVEL 2: THE MYSTERY CAVE (Gua Hikmah)</span><span>MULA ▶</span>
+                </button>
+                <button onclick="GameEngine.startGame(2)" class="game-btn w-full bg-amber-600 text-white py-3 px-4 text-left font-bold flex justify-between items-center">
+                    <span>LEVEL 3: THE ROYAL CASTLE (Istana Nur)</span><span>MULA ▶</span>
+                </button>
+                <button onclick="GameEngine.startGame(3)" class="game-btn w-full bg-purple-600 text-white py-3 px-4 text-left font-bold flex justify-between items-center">
+                    <span>LEVEL 4: THE FINAL GATE (Gerbang Terakhir)</span><span>MULA ▶</span>
+                </button>
+            </div>
+            <button onclick="document.getElementById('level-select-modal').classList.add('hidden')" class="game-btn bg-slate-700 text-white px-6 py-2 text-sm">
+                TUTUP
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL PAUSE -->
+    <div id="pause-modal" class="absolute inset-0 bg-slate-950/75 backdrop-blur-sm hidden items-center justify-center p-4 z-30">
+        <div class="max-w-sm w-full bg-slate-900 border-4 border-amber-400 rounded-3xl p-6 text-center">
+            <h2 class="font-game text-3xl font-bold text-amber-400 mb-2">PERMAINAN DIJEDA</h2>
+            <p class="text-slate-300 text-sm mb-5">Rehat sebentar sebelum menyambung pengembaraan!</p>
+            <div class="space-y-3">
+                <button onclick="GameEngine.togglePause()" class="game-btn w-full bg-emerald-500 text-slate-950 font-bold py-3 text-lg">
+                    SAMBUNG BERMAIN
+                </button>
+                <button onclick="GameEngine.restartLevel()" class="game-btn w-full bg-sky-500 text-slate-950 font-bold py-3 text-base">
+                    ULANG LEVEL INI
+                </button>
+                <button onclick="GameEngine.returnToMenu()" class="game-btn w-full bg-slate-700 text-white font-bold py-3 text-base">
+                    MENU UTAMA
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL INTERAKSI DUNIA (SKROL ILMU, DRESS-UP WARDROBE & PUZZLE SUSUN ITEM) -->
+    <div id="interaction-modal" class="absolute inset-0 bg-slate-950/75 backdrop-blur-sm hidden items-center justify-center p-4 z-30">
+        <div class="max-w-xl w-full bg-slate-900 border-4 border-amber-400 rounded-3xl p-5 sm:p-6 text-white shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between border-b border-slate-700 pb-3 mb-4">
+                <h3 id="modal-title" class="font-game text-xl sm:text-2xl font-bold text-amber-400">Tajuk Interaksi</h3>
+                <span id="modal-tag" class="bg-sky-500/20 border border-sky-400 text-sky-300 text-xs font-bold px-3 py-1 rounded-full">INFO</span>
+            </div>
+            <div id="modal-body" class="text-slate-200 text-sm sm:text-base leading-relaxed space-y-3 mb-5"></div>
+            <div id="modal-actions" class="flex flex-wrap gap-2.5 justify-end"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+/**
+ * ============================================================================
+ * BAHAGIAN 1: DATA DUNIA, PETA, NPC, ITEM & AKTIVITI INTERAKTIF (WORLD_DATA)
+ * ============================================================================
+ * Struktur data diasingkan sepenuhnya supaya guru atau pembangun mudah
+ * menambah platform, mengubah kedudukan item, laluan rahsia, serta aktiviti
+ * dress-up dan puzzle pintu di setiap level.
+ */
+const WORLD_DATA = [
+    // ========================================================================
+    // LEVEL 1: THE VILLAGE (KAMPUNG CAHAYA)
+    // ========================================================================
+    {
+        id: 0,
+        name: "LEVEL 1 – THE VILLAGE",
+        objective: "Kumpul 3 Pakaian Sopan & bantu Aisyah bersiap di Almari Pakaian!",
+        theme: "village",
+        width: 3000,
+        height: 720,
+        spawn: { x: 100, y: 450 },
+        checkpoint: { x: 1450, y: 420 },
+        platforms: [
+            { x: 0, y: 580, w: 900, h: 140, type: "ground" },
+            { x: 990, y: 580, w: 680, h: 140, type: "ground" },
+            { x: 1670, y: 580, w: 230, h: 28, type: "bridge" }, // Jambatan kayu merentasi anak sungai
+            { x: 1900, y: 580, w: 1100, h: 140, type: "ground" },
+            // Platform bertingkat & bumbung rumah kampung
+            { x: 300, y: 460, w: 160, h: 24, type: "wood" },
+            { x: 520, y: 360, w: 180, h: 24, type: "wood" },
+            // Laluan rahsia tinggi di atas pokok kampung
+            { x: 760, y: 240, w: 180, h: 22, type: "secret" },
+            { x: 1080, y: 450, w: 170, h: 24, type: "wood" },
+            { x: 1320, y: 340, w: 190, h: 24, type: "wood" },
+            { x: 2120, y: 460, w: 160, h: 24, type: "wood" },
+            { x: 2360, y: 350, w: 180, h: 24, type: "wood" }
+        ],
+        movingPlatforms: [],
+        hazards: [
+            { x: 900, y: 630, w: 90, h: 90, type: "water" }
+        ],
+        collectibles: [
+            // Syiling emas di sepanjang laluan
+            { id: "v_c1", x: 220, y: 530, type: "coin" },
+            { id: "v_c2", x: 350, y: 410, type: "coin" },
+            { id: "v_c3", x: 410, y: 410, type: "coin" },
+            { id: "v_c4", x: 1140, y: 400, type: "coin" },
+            { id: "v_c5", x: 1740, y: 530, type: "coin" },
+            { id: "v_c6", x: 1820, y: 530, type: "coin" },
+            // Bintang & Bintang Rahsia
+            { id: "v_s1", x: 850, y: 190, type: "star" }, // Di laluan rahsia atas
+            { id: "v_s2", x: 2200, y: 410, type: "star" },
+            // 3 Item Pakaian Misi
+            {
+                id: "cloth_kurung", x: 600, y: 310, type: "cloth", name: "Baju Kurung Longgar",
+                info: "Pakaian yang longgar dan tidak ketat menepati syariat Islam kerana tidak menampakkan bentuk tubuh badan."
+            },
+            {
+                id: "cloth_tudung", x: 1410, y: 290, type: "cloth", name: "Tudung Labuh Menutup Dada",
+                info: "Aurat perempuan ialah seluruh tubuh badan kecuali muka dan kedua-dua tapak tangan."
+            },
+            {
+                id: "cloth_stoking", x: 2440, y: 300, type: "cloth", name: "Stoking Kaki Tebal",
+                info: "Kaki juga termasuk dalam bahagian aurat perempuan. Memakai stoking menyempurnakan penutupan aurat."
+            }
+        ],
+        interactables: [
+            {
+                id: "scroll_v1", x: 190, y: 520, type: "scroll",
+                title: "Papan Hikmah Kampung: Maksud & Hukum Aurat",
+                content: "Aurat ialah bahagian tubuh badan yang wajib ditutup dan tidak boleh didedahkan kepada orang bukan mahram. Hukum menutup aurat adalah WAJIB bagi setiap orang Islam."
+            },
+            {
+                // AKTIVITI DRESS-UP INTERAKTIF (MEMAKAIKAN AVATAR AISYAH UNTUK KE MAJLIS)
+                id: "npc_aisyah", x: 2020, y: 510, type: "wardrobe_dressup",
+                name: "Aisyah & Almari Pakaian Majlis",
+                story: "Assalamualaikum Rayyan! Saya ingin menghadiri majlis ilmu di surau kampung. Klik pada item pakaian di bawah untuk memakaikan saya pakaian yang menutup aurat dengan sempurna!",
+                wardrobeItems: [
+                    { id: "w_tudung", label: "Tudung Labuh", slot: "head", valid: true },
+                    { id: "w_topi", label: "Topi Biasa (Rambut Terdedah)", slot: "head", valid: false },
+                    { id: "w_kurung", label: "Baju Kurung Longgar", slot: "body", valid: true },
+                    { id: "w_lenganpendek", label: "Baju Lengan Pendek", slot: "body", valid: false },
+                    { id: "w_stoking", label: "Stoking & Kasut Bertutup", slot: "feet", valid: true },
+                    { id: "w_selipar", label: "Selipar Tanpa Stoking", slot: "feet", valid: false }
+                ],
+                successMsg: "Alhamdulillah! Gabungan Tudung Labuh, Baju Kurung Longgar dan Stoking menutup seluruh aurat perempuan kecuali muka dan tapak tangan!"
+            }
+        ],
+        gate: {
+            x: 2800, y: 460, w: 72, h: 120,
+            requireItems: 3,
+            requireNpcSolved: "npc_aisyah",
+            lockedMsg: "Gerbang Kampung masih berkunci! Kumpul 3 item pakaian di atas platform dan lengkapkan pakaian Aisyah terlebih dahulu."
+        }
+    },
+
+    // ========================================================================
+    // LEVEL 2: THE MYSTERY CAVE (GUA HIKMAH)
+    // ========================================================================
+    {
+        id: 1,
+        name: "LEVEL 2 – THE MYSTERY CAVE",
+        objective: "Rentasi platform bergerak, temui 2 Skrol Petunjuk & ambil Kunci Gua!",
+        theme: "cave",
+        width: 3100,
+        height: 720,
+        spawn: { x: 90, y: 450 },
+        checkpoint: { x: 1520, y: 360 },
+        platforms: [
+            { x: 0, y: 580, w: 640, h: 140, type: "stone" },
+            { x: 1260, y: 450, w: 440, h: 270, type: "stone" },
+            { x: 2300, y: 580, w: 800, h: 140, type: "stone" },
+            // Batu pijak gua & laluan tersembunyi
+            { x: 350, y: 450, w: 150, h: 24, type: "stone" },
+            { x: 150, y: 320, w: 150, h: 22, type: "secret" }, // Laluan tersembunyi gua
+            { x: 1460, y: 320, w: 160, h: 24, type: "stone" },
+            { x: 2480, y: 450, w: 170, h: 24, type: "stone" }
+        ],
+        movingPlatforms: [
+            { x: 700, y: 520, w: 140, h: 22, startX: 700, endX: 1020, speed: 2.3, axis: "x" },
+            { x: 1760, y: 480, w: 140, h: 22, startX: 1760, endX: 2100, speed: 2.7, axis: "x" }
+        ],
+        hazards: [
+            { x: 640, y: 650, w: 620, h: 70, type: "spikes" },
+            { x: 1700, y: 650, w: 600, h: 70, type: "spikes" }
+        ],
+        collectibles: [
+            { id: "c_c1", x: 390, y: 400, type: "coin" },
+            { id: "c_c2", x: 450, y: 400, type: "coin" },
+            { id: "c_c3", x: 1350, y: 400, type: "coin" },
+            { id: "c_c4", x: 1410, y: 400, type: "coin" },
+            { id: "c_s1", x: 220, y: 270, type: "star" }, // Bintang tersembunyi di batu atas
+            { id: "c_s2", x: 880, y: 460, type: "star" },
+            {
+                id: "cave_key", x: 2560, y: 395, type: "key", name: "Kunci Kristal Gua",
+                info: "Kamu menemui Kunci Kristal! Menjaga aurat melindungi diri daripada pandangan tidak baik dan memelihara maruah."
+            }
+        ],
+        interactables: [
+            {
+                id: "scroll_c1", x: 520, y: 520, type: "scroll",
+                title: "Skrol Gua #1: Batas Aurat Lelaki",
+                content: "Batas aurat bagi lelaki adalah dari PUSAT hingga LUTUT. Ketika bersukan, bermain bola atau berenang, lelaki wajib memastikan seluar menutup lutut."
+            },
+            {
+                id: "scroll_c2", x: 1530, y: 260, type: "scroll",
+                title: "Skrol Gua #2: Ciri Kain Pakaian",
+                content: "Pakaian yang menutup aurat mestilah diperbuat daripada kain yang TEBAL dan TIDAK JARANG supaya warna kulit tidak kelihatan dari luar."
+            }
+        ],
+        gate: {
+            x: 2920, y: 460, w: 72, h: 120,
+            requireItems: 1,
+            requireNpcSolved: null,
+            lockedMsg: "Pintu Gua terkunci rapat! Lompat ke platform tinggi di hujung gua untuk mengambil Kunci Kristal."
+        }
+    },
+
+    // ========================================================================
+    // LEVEL 3: THE ROYAL CASTLE (ISTANA NUR)
+    // ========================================================================
+    {
+        id: 2,
+        name: "LEVEL 3 – THE ROYAL CASTLE",
+        objective: "Kumpul 2 Lambang Syariat & selesaikan Puzzle Padanan Situasi di Dewan Istana!",
+        theme: "castle",
+        width: 3200,
+        height: 720,
+        spawn: { x: 100, y: 450 },
+        checkpoint: { x: 1600, y: 500 },
+        platforms: [
+            { x: 0, y: 580, w: 980, h: 140, type: "marble" },
+            { x: 1080, y: 580, w: 980, h: 140, type: "marble" },
+            { x: 2160, y: 580, w: 1040, h: 140, type: "marble" },
+            // Balkoni & tangga istana
+            { x: 280, y: 450, w: 180, h: 24, type: "marble" },
+            { x: 540, y: 330, w: 180, h: 24, type: "marble" },
+            { x: 1240, y: 450, w: 180, h: 24, type: "marble" },
+            { x: 1500, y: 330, w: 180, h: 24, type: "marble" },
+            { x: 2340, y: 440, w: 200, h: 24, type: "marble" }
+        ],
+        movingPlatforms: [],
+        hazards: [
+            { x: 980, y: 640, w: 100, h: 80, type: "spikes" },
+            { x: 2060, y: 640, w: 100, h: 80, type: "spikes" }
+        ],
+        collectibles: [
+            { id: "r_c1", x: 340, y: 400, type: "coin" },
+            { id: "r_c2", x: 400, y: 400, type: "coin" },
+            { id: "r_c3", x: 1300, y: 400, type: "coin" },
+            { id: "r_s1", x: 2430, y: 390, type: "star" },
+            {
+                id: "emblem_1", x: 620, y: 280, type: "cloth", name: "Lambang Pakaian Longgar",
+                info: "Ciri Pakaian Syariat #1: Pakaian mestilah longgar dan tidak mengikut bentuk tubuh badan."
+            },
+            {
+                id: "emblem_2", x: 1580, y: 280, type: "cloth", name: "Lambang Kain Tebal",
+                info: "Ciri Pakaian Syariat #2: Kain pakaian mestilah tebal dan tidak jarang sehingga menampakkan kulit."
+            }
+        ],
+        interactables: [
+            {
+                // PUZZLE MEMADANKAN PAKAIAN DENGAN 3 SITUASI HARIAN
+                id: "castle_matching_puzzle", x: 2680, y: 510, type: "matching_puzzle",
+                name: "Meja Puzzle Penjaga Istana",
+                instruction: "Padankan setiap situasi harian di bawah dengan pilihan pakaian yang menepati tuntutan menutup aurat untuk membuka Gerbang Istana:",
+                pairs: [
+                    {
+                        situation: "1. Amir bermain bola sepak di padang sekolah",
+                        choices: ["Seluar pendek di atas lutut", "Seluar sukan panjang menutup lutut & jersi sopan"],
+                        correctIndex: 1
+                    },
+                    {
+                        situation: "2. Sarah keluar bersiar-siar di taman bersama keluarga",
+                        choices: ["Baju lengan panjang longgar, seluar panjang & tudung", "Baju lengan pendek & seluar ketat"],
+                        correctIndex: 0
+                    },
+                    {
+                        situation: "3. Ahmad ingin menunaikan solat berjemaah di masjid",
+                        choices: ["Baju Melayu bersih & kain pelikat menutup pusat hingga lutut", "Baju singlet & seluar pendek"],
+                        correctIndex: 0
+                    }
+                ],
+                successMsg: "Syabas! Ketiga-tiga situasi telah dipadankan dengan pakaian yang sempurna. Gerbang Istana kini terbuka!"
+            }
+        ],
+        gate: {
+            x: 3020, y: 460, w: 72, h: 120,
+            requireItems: 2,
+            requireNpcSolved: "castle_matching_puzzle",
+            lockedMsg: "Gerbang Istana memerlukan 2 Lambang Syariat dan penyelesaian Puzzle Meja Penjaga Istana!"
+        }
+    },
+
+    // ========================================================================
+    // LEVEL 4: THE FINAL GATE (GERBANG KERAJAAN TERAKHIR)
+    // ========================================================================
+    {
+        id: 3,
+        name: "LEVEL 4 – THE FINAL GATE",
+        objective: "Cabaran Terakhir! Kumpul Kunci Emas & Buka Portal Wira Aurat!",
+        theme: "sky",
+        width: 3300,
+        height: 720,
+        spawn: { x: 100, y: 450 },
+        checkpoint: { x: 1650, y: 380 },
+        platforms: [
+            { x: 0, y: 580, w: 560, h: 140, type: "gold" },
+            { x: 1480, y: 460, w: 380, h: 260, type: "gold" },
+            { x: 2600, y: 580, w: 700, h: 140, type: "gold" },
+            { x: 350, y: 450, w: 140, h: 24, type: "gold" },
+            { x: 1600, y: 330, w: 150, h: 24, type: "gold" }
+        ],
+        movingPlatforms: [
+            { x: 630, y: 520, w: 130, h: 22, startX: 630, endX: 940, speed: 2.8, axis: "x" },
+            { x: 1040, y: 460, w: 130, h: 22, startX: 1040, endX: 1350, speed: 3.1, axis: "x" },
+            { x: 1950, y: 500, w: 140, h: 22, startX: 1950, endX: 2400, speed: 3.3, axis: "x" }
+        ],
+        hazards: [
+            { x: 560, y: 650, w: 920, h: 70, type: "spikes" },
+            { x: 1860, y: 650, w: 740, h: 70, type: "spikes" }
+        ],
+        collectibles: [
+            { id: "f_c1", x: 390, y: 400, type: "coin" },
+            { id: "f_c2", x: 450, y: 400, type: "coin" },
+            { id: "f_s1", x: 1180, y: 400, type: "star" },
+            { id: "f_s2", x: 2150, y: 430, type: "star" },
+            {
+                id: "master_key", x: 1675, y: 275, type: "key", name: "Kunci Emas Wira Aurat",
+                info: "Kamu memperoleh Kunci Emas! Menjaga aurat membawa keberkatan hidup dan keredhaan Allah SWT."
+            }
+        ],
+        interactables: [
+            {
+                id: "final_pedestal", x: 2780, y: 510, type: "matching_puzzle",
+                name: "Batu Bersurat Portal Terakhir",
+                instruction: "Lengkapkan Rumusan Ilmu Wira Aurat untuk mengaktifkan Portal Kemenangan:",
+                pairs: [
+                    {
+                        situation: "1. Batas aurat lelaki yang wajib ditutup ialah...",
+                        choices: ["Dari pusat hingga lutut", "Dari bahu hingga pinggang"],
+                        correctIndex: 0
+                    },
+                    {
+                        situation: "2. Batas aurat perempuan yang wajib ditutup ialah...",
+                        choices: ["Seluruh tubuh kecuali muka dan kedua tapak tangan", "Rambut dan lengan sahaja"],
+                        correctIndex: 0
+                    },
+                    {
+                        situation: "3. Hukum menutup aurat bagi umat Islam adalah...",
+                        choices: ["Wajib pada setiap masa di hadapan bukan mahram", "Sunat ketika ke sekolah sahaja"],
+                        correctIndex: 0
+                    }
+                ],
+                successMsg: "TAHNIAH WIRA AURAT! Batu Bersurat bercahaya dan Portal Kemenangan telah dibuka!"
+            }
+        ],
+        gate: {
+            x: 3090, y: 440, w: 85, h: 140,
+            requireItems: 1,
+            requireNpcSolved: "final_pedestal",
+            lockedMsg: "Portal Kemenangan memerlukan Kunci Emas di atas platform tengah dan melengkapkan Batu Bersurat Portal!"
+        }
+    }
+];
+
+/**
+ * ============================================================================
+ * BAHAGIAN 2: ENJIN AUDIO & MUZIK LATAR PENGEMBARAAN (TONE.JS)
+ * ============================================================================
+ */
+const AudioFX = {
+    muted: false,
+    ready: false,
+    synth: null,
+    bgmLoop: null,
+
+    async init() {
+        if (this.ready) return;
+        try {
+            await Tone.start();
+            this.synth = new Tone.PolySynth(Tone.Synth, {
+                oscillator: { type: "triangle" },
+                envelope: { attack: 0.01, decay: 0.12, sustain: 0.1, release: 0.3 }
+            }).toDestination();
+            this.synth.volume.value = -10;
+
+            // Melodi Latar Ringan Pengembaraan
+            const bgmSynth = new Tone.Synth({
+                oscillator: { type: "sine" },
+                envelope: { attack: 0.02, decay: 0.2, sustain: 0.1, release: 0.4 }
+            }).toDestination();
+            bgmSynth.volume.value = -22;
+
+            const notes = ["C4", "E4", "G4", "E4", "A4", "G4", "E4", "D4"];
+            let step = 0;
+            this.bgmLoop = new Tone.Loop((time) => {
+                if (!this.muted && GameEngine.running && !GameEngine.paused) {
+                    bgmSynth.triggerAttackRelease(notes[step % notes.length], "8n", time);
+                    step++;
+                }
+            }, "4n").start(0);
+            Tone.Transport.start();
+
+            this.ready = true;
+        } catch (e) {}
+    },
+
+    toggleMute() {
+        this.init();
+        this.muted = !this.muted;
+        document.getElementById("btn-mute").textContent = this.muted ? "MUZIK: OFF" : "MUZIK: ON";
+    },
+
+    playJump() {
+        this.init();
+        if (this.muted || !this.synth) return;
+        this.synth.triggerAttackRelease("C4", "32n");
+        this.synth.triggerAttackRelease("G4", "16n", Tone.now() + 0.05);
+    },
+
+    playCoin() {
+        this.init();
+        if (this.muted || !this.synth) return;
+        this.synth.triggerAttackRelease("B5", "32n");
+    },
+
+    playCollect() {
+        this.init();
+        if (this.muted || !this.synth) return;
+        const now = Tone.now();
+        this.synth.triggerAttackRelease("E5", "32n", now);
+        this.synth.triggerAttackRelease("B5", "16n", now + 0.07);
+    },
+
+    playHurt() {
+        this.init();
+        if (this.muted || !this.synth) return;
+        this.synth.triggerAttackRelease("G3", "16n");
+        this.synth.triggerAttackRelease("C3", "8n", Tone.now() + 0.1);
+    },
+
+    playLevelWin() {
+        this.init();
+        if (this.muted || !this.synth) return;
+        const now = Tone.now();
+        ["C5", "E5", "G5", "C6"].forEach((note, i) => {
+            this.synth.triggerAttackRelease(note, "16n", now + i * 0.1);
+        });
+    }
+};
+
+/**
+ * ============================================================================
+ * BAHAGIAN 3: PENJANA GRAFIK KARTUN 2.5D CUSTOM (SPRITERENDERER - TANPA EMOJI)
+ * ============================================================================
+ */
+const SpriteRenderer = {
+    // Lukis Watak Utama (Wira Rayyan - Berpakaian Sopan Menutup Aurat)
+    drawPlayer(ctx, p) {
+        ctx.save();
+        ctx.translate(p.x + p.w / 2, p.y + p.h / 2);
+        if (p.facing === -1) ctx.scale(-1, 1);
+
+        // Animasi berjalan, melompat dan jatuh
+        const walkSwing = p.grounded && Math.abs(p.vx) > 0.3 ? Math.sin(p.animTimer * 0.35) * 7 : 0;
+        const jumpStretch = !p.grounded ? (p.vy < 0 ? 1.08 : 0.94) : 1.0;
+        ctx.scale(1 / jumpStretch, jumpStretch);
+
+        // Bayang bawah kaki
+        ctx.fillStyle = "rgba(0,0,0,0.22)";
+        ctx.beginPath();
+        ctx.ellipse(0, p.h / 2, 16, 4, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Seluar Track Panjang (Menutup Aurat dari Pusat hingga Buku Lali)
+        ctx.fillStyle = "#1E293B";
+        ctx.beginPath();
+        ctx.roundRect(-11 + walkSwing, 6, 9, 18, 4);
+        ctx.roundRect(2 - walkSwing, 6, 9, 18, 4);
+        ctx.fill();
+
+        // Kasut Pengembara
+        ctx.fillStyle = "#F59E0B";
+        ctx.beginPath();
+        ctx.roundRect(-12 + walkSwing, 21, 11, 6, 3);
+        ctx.roundRect(1 - walkSwing, 21, 11, 6, 3);
+        ctx.fill();
+
+        // Baju Tunik Pengembara Hijau Zamrud Longgar
+        ctx.fillStyle = "#10B981";
+        ctx.beginPath();
+        ctx.roundRect(-14, -12, 28, 22, 7);
+        ctx.fill();
+        ctx.strokeStyle = "#047857";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Tali Pinggang Emas
+        ctx.fillStyle = "#FBBF24";
+        ctx.fillRect(-13, 3, 26, 4);
+
+        // Lengan
+        ctx.fillStyle = "#059669";
+        ctx.beginPath();
+        ctx.roundRect(-17 - walkSwing * 0.5, -10, 7, 15, 4);
+        ctx.roundRect(10 + walkSwing * 0.5, -10, 7, 15, 4);
+        ctx.fill();
+
+        // Kepala Kartun
+        ctx.fillStyle = "#FDBA74";
+        ctx.beginPath();
+        ctx.arc(0, -22, 13, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Kopiah Pengembara Moden
+        ctx.fillStyle = "#0F172A";
+        ctx.beginPath();
+        ctx.roundRect(-12, -35, 24, 10, 5);
+        ctx.fill();
+        ctx.fillStyle = "#FBBF24";
+        ctx.fillRect(-11, -28, 22, 2.5);
+
+        // Mata & Senyuman
+        ctx.fillStyle = "#0F172A";
+        ctx.beginPath();
+        ctx.arc(5, -22, 2.3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#FFFFFF";
+        ctx.beginPath();
+        ctx.arc(5.8, -22.8, 0.9, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = "#9A3412";
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.arc(4, -18, 4, 0.1 * Math.PI, 0.8 * Math.PI);
+        ctx.stroke();
+
+        ctx.restore();
+    },
+
+    // Lukis Watak NPC atau Meja Puzzle
+    drawInteractableEntity(ctx, obj, time) {
+        const bob = Math.sin(time * 0.06) * 3;
+        ctx.save();
+        ctx.translate(obj.x + 20, obj.y + 35 + bob);
+
+        if (obj.type === "wardrobe_dressup") {
+            // Lukis Watak Aisyah + Almari Pakaian Mini di sebelahnya
+            ctx.fillStyle = "#92400E";
+            ctx.beginPath();
+            ctx.roundRect(22, -25, 28, 52, 5);
+            ctx.fill();
+            ctx.strokeStyle = "#FBBF24";
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Aisyah
+            ctx.fillStyle = "#EC4899";
+            ctx.beginPath();
+            ctx.roundRect(-15, -12, 30, 42, 8);
+            ctx.fill();
+            ctx.fillStyle = "#FBCFE8";
+            ctx.beginPath();
+            ctx.arc(0, -22, 16, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = "#FDBA74";
+            ctx.beginPath();
+            ctx.arc(0, -21, 11, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = "#1E293B";
+            ctx.beginPath();
+            ctx.arc(-4, -22, 2, 0, Math.PI * 2);
+            ctx.arc(4, -22, 2, 0, Math.PI * 2);
+            ctx.fill();
+        } else {
+            // Meja Batu Bersurat / Penjaga Puzzle
+            ctx.fillStyle = "#3B82F6";
+            ctx.beginPath();
+            ctx.roundRect(-16, -15, 32, 42, 8);
+            ctx.fill();
+            ctx.strokeStyle = "#93C5FD";
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.fillStyle = "#FEF08A";
+            ctx.beginPath();
+            ctx.arc(0, 4, 8, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Penunjuk Status (! atau ✓)
+        ctx.fillStyle = obj.solved ? "#10B981" : "#FBBF24";
+        ctx.beginPath();
+        ctx.arc(0, -48 + bob, 11, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = obj.solved ? "#FFFFFF" : "#0F172A";
+        ctx.font = "bold 14px Fredoka";
+        ctx.textAlign = "center";
+        ctx.fillText(obj.solved ? "✓" : "!", 0, -43 + bob);
+
+        ctx.restore();
+    },
+
+    // Lukis Item Boleh Dikutip (Syiling, Bintang, Pakaian, Kunci)
+    drawCollectible(ctx, item, time) {
+        if (item.collected) return;
+        const floatY = Math.sin(time * 0.08 + item.x) * 5;
+        ctx.save();
+        ctx.translate(item.x, item.y + floatY);
+
+        if (item.type === "coin") {
+            // Animasi syiling berputar (lebar mengecil & membesar)
+            const spinW = Math.max(3, Math.abs(Math.cos(time * 0.08 + item.x)) * 10);
+            ctx.fillStyle = "#FACC15";
+            ctx.strokeStyle = "#CA8A04";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.ellipse(0, 0, spinW, 11, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            ctx.restore();
+            return;
+        }
+
+        // Aura Cahaya untuk Bintang, Pakaian & Kunci
+        const grad = ctx.createRadialGradient(0, 0, 2, 0, 0, 22);
+        grad.addColorStop(0, "rgba(253, 224, 71, 0.55)");
+        grad.addColorStop(1, "rgba(253, 224, 71, 0)");
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(0, 0, 22, 0, Math.PI * 2);
+        ctx.fill();
+
+        if (item.type === "star") {
+            ctx.fillStyle = "#FBBF24";
+            ctx.strokeStyle = "#B45309";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            for (let i = 0; i < 5; i++) {
+                ctx.lineTo(Math.cos((18 + i * 72) * Math.PI / 180) * 13, -Math.sin((18 + i * 72) * Math.PI / 180) * 13);
+                ctx.lineTo(Math.cos((54 + i * 72) * Math.PI / 180) * 6, -Math.sin((54 + i * 72) * Math.PI / 180) * 6);
+            }
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+        } else if (item.type === "cloth") {
+            ctx.fillStyle = "#38BDF8";
+            ctx.strokeStyle = "#FFFFFF";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.roundRect(-14, -12, 28, 24, 6);
+            ctx.fill();
+            ctx.stroke();
+            ctx.fillStyle = "#FFFFFF";
+            ctx.beginPath();
+            ctx.moveTo(-7, -6);
+            ctx.lineTo(7, -6);
+            ctx.lineTo(9, 0);
+            ctx.lineTo(5, 0);
+            ctx.lineTo(5, 7);
+            ctx.lineTo(-5, 7);
+            ctx.lineTo(-5, 0);
+            ctx.lineTo(-9, 0);
+            ctx.closePath();
+            ctx.fill();
+        } else if (item.type === "key") {
+            ctx.fillStyle = "#F59E0B";
+            ctx.strokeStyle = "#FEF08A";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(-6, 0, 7, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            ctx.fillRect(0, -2.5, 14, 5);
+            ctx.fillRect(8, 2.5, 3, 5);
+            ctx.fillRect(12, 2.5, 3, 5);
+        }
+        ctx.restore();
+    },
+
+    // Lukis Skrol / Papan Hikmah Ilmu
+    drawScroll(ctx, sc, time) {
+        const floatY = Math.sin(time * 0.07 + sc.x) * 3;
+        ctx.save();
+        ctx.translate(sc.x + 15, sc.y + 20 + floatY);
+        ctx.fillStyle = "#FEF3C7";
+        ctx.strokeStyle = "#D97706";
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.roundRect(-12, -16, 24, 32, 4);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = "#B45309";
+        ctx.fillRect(-14, -18, 28, 5);
+        ctx.fillRect(-14, 13, 28, 5);
+        ctx.strokeStyle = "#92400E";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(-6, -6); ctx.lineTo(6, -6);
+        ctx.moveTo(-6, 0); ctx.lineTo(6, 0);
+        ctx.moveTo(-6, 6); ctx.lineTo(3, 6);
+        ctx.stroke();
+        ctx.restore();
+    },
+
+    // Lukis Pintu Gerbang / Portal Tamat Level
+    drawGate(ctx, gate, isOpen, time) {
+        ctx.save();
+        ctx.translate(gate.x, gate.y);
+
+        ctx.fillStyle = "#334155";
+        ctx.beginPath();
+        ctx.roundRect(-8, -10, gate.w + 16, gate.h + 10, [35, 35, 0, 0]);
+        ctx.fill();
+
+        if (isOpen) {
+            const pulse = 0.8 + Math.sin(time * 0.1) * 0.2;
+            const grad = ctx.createLinearGradient(0, 0, 0, gate.h);
+            grad.addColorStop(0, `rgba(52, 211, 153, ${pulse})`);
+            grad.addColorStop(1, "rgba(59, 130, 246, 0.9)");
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.roundRect(0, 0, gate.w, gate.h, [28, 28, 0, 0]);
+            ctx.fill();
+        } else {
+            ctx.fillStyle = "#78350F";
+            ctx.beginPath();
+            ctx.roundRect(0, 0, gate.w, gate.h, [28, 28, 0, 0]);
+            ctx.fill();
+            ctx.fillStyle = "#FBBF24";
+            ctx.beginPath();
+            ctx.arc(gate.w / 2, gate.h / 2, 10, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.restore();
+    }
+};
+
+/**
+ * ============================================================================
+ * BAHAGIAN 4: ENJIN UTAMA PLATFORMER, FIZIK, COLLISION & KAMERA (GAMEENGINE)
+ * ============================================================================
+ */
+const GameEngine = {
+    canvas: null,
+    ctx: null,
+    width: 0,
+    height: 0,
+    running: false,
+    paused: false,
+    time: 0,
+
+    currentLevelIdx: 0,
+    level: null,
+    camera: { x: 0, y: 0 },
+
+    player: {
+        x: 100, y: 400, w: 32, h: 52,
+        vx: 0, vy: 0,
+        speed: 5.3,
+        jumpForce: -13.4,
+        gravity: 0.58,
+        grounded: false,
+        facing: 1,
+        animTimer: 0,
+        lives: 3,
+        coins: 0,
+        stars: 0,
+        collectedItems: [],
+        checkpointReached: false
+    },
+
+    particles: [],
+    leaves: [], // Animasi daun / habuk bercahaya terapung
+    keys: { left: false, right: false, jump: false },
+    activeInteractable: null,
+
+    // Keadaan semasa aktiviti dress-up & puzzle
+    wardrobeSelection: {},
+    puzzleSelection: {},
+
+    init() {
+        this.canvas = document.getElementById("gameCanvas");
+        this.ctx = this.canvas.getContext("2d");
+        this.resize();
+        window.addEventListener("resize", () => this.resize());
+        this.bindInputs();
+
+        // Jana partikel persekitaran (daun / cahaya terapung)
+        for (let i = 0; i < 25; i++) {
+            this.leaves.push({
+                x: Math.random() * 3200,
+                y: Math.random() * 600,
+                vx: -0.4 - Math.random() * 0.5,
+                vy: 0.3 + Math.random() * 0.4,
+                size: 3 + Math.random() * 3
+            });
+        }
+    },
+
+    resize() {
+        this.width = window.innerWidth;
+        this.height = window.innerHeight;
+        this.canvas.width = this.width;
+        this.canvas.height = this.height;
+    },
+
+    bindInputs() {
+        window.addEventListener("keydown", (e) => {
+            if (e.code === "ArrowLeft" || e.code === "KeyA") this.keys.left = true;
+            if (e.code === "ArrowRight" || e.code === "KeyD") this.keys.right = true;
+            if (e.code === "Space" || e.code === "ArrowUp" || e.code === "KeyW") {
+                if (!this.keys.jump) this.tryJump();
+                this.keys.jump = true;
+            }
+            if (e.code === "KeyE") this.triggerInteract();
+            if (e.code === "Escape" && this.running) this.togglePause();
+        });
+
+        window.addEventListener("keyup", (e) => {
+            if (e.code === "ArrowLeft" || e.code === "KeyA") this.keys.left = false;
+            if (e.code === "ArrowRight" || e.code === "KeyD") this.keys.right = false;
+            if (e.code === "Space" || e.code === "ArrowUp" || e.code === "KeyW") this.keys.jump = false;
+        });
+
+        const bindTouch = (id, onDown, onUp) => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.addEventListener("touchstart", (e) => { e.preventDefault(); el.classList.add("pressed"); onDown(); });
+            el.addEventListener("touchend", (e) => { e.preventDefault(); el.classList.remove("pressed"); if (onUp) onUp(); });
+        };
+
+        bindTouch("touch-left", () => this.keys.left = true, () => this.keys.left = false);
+        bindTouch("touch-right", () => this.keys.right = true, () => this.keys.right = false);
+        bindTouch("touch-jump", () => this.tryJump(), null);
+        bindTouch("touch-interact", () => this.triggerInteract(), null);
+    },
+
+    showLevelSelect() {
+        document.getElementById("level-select-modal").classList.remove("hidden");
+        document.getElementById("level-select-modal").classList.add("flex");
+    },
+
+    startGame(levelIdx) {
+        AudioFX.init();
+        document.getElementById("start-screen").classList.add("hidden");
+        document.getElementById("level-select-modal").classList.add("hidden");
+        document.getElementById("hud-overlay").classList.remove("hidden");
+
+        this.player.lives = 3;
+        this.player.coins = 0;
+        this.player.stars = 0;
+        this.loadLevel(levelIdx);
+
+        if (!this.running) {
+            this.running = true;
+            this.loop();
+        }
+    },
+
+    loadLevel(idx) {
+        this.currentLevelIdx = idx;
+        this.level = JSON.parse(JSON.stringify(WORLD_DATA[idx]));
+        this.player.x = this.level.spawn.x;
+        this.player.y = this.level.spawn.y;
+        this.player.vx = 0;
+        this.player.vy = 0;
+        this.player.collectedItems = [];
+        this.player.checkpointReached = false;
+        this.particles = [];
+        this.paused = false;
+
+        document.getElementById("hud-level-name").textContent = this.level.name;
+        document.getElementById("hud-objective").textContent = this.level.objective;
+        this.updateHUD();
+    },
+
+    restartLevel() {
+        document.getElementById("pause-modal").classList.add("hidden");
+        this.player.lives = 3;
+        this.loadLevel(this.currentLevelIdx);
+    },
+
+    returnToMenu() {
+        this.paused = true;
+        document.getElementById("pause-modal").classList.add("hidden");
+        document.getElementById("hud-overlay").classList.add("hidden");
+        document.getElementById("start-screen").classList.remove("hidden");
+    },
+
+    togglePause() {
+        if (!document.getElementById("interaction-modal").classList.contains("hidden")) return;
+        this.paused = !this.paused;
+        const pm = document.getElementById("pause-modal");
+        if (this.paused) {
+            pm.classList.remove("hidden");
+            pm.classList.add("flex");
+        } else {
+            pm.classList.add("hidden");
+            pm.classList.remove("flex");
+        }
+    },
+
+    tryJump() {
+        if (this.paused || !this.running) return;
+        if (this.player.grounded) {
+            this.player.vy = this.player.jumpForce;
+            this.player.grounded = false;
+            AudioFX.playJump();
+            this.spawnParticles(this.player.x + 16, this.player.y + 52, "#E2E8F0", 8);
+        }
+    },
+
+    spawnParticles(x, y, color, count = 10) {
+        for (let i = 0; i < count; i++) {
+            this.particles.push({
+                x, y,
+                vx: (Math.random() - 0.5) * 6,
+                vy: (Math.random() - 0.8) * 5,
+                life: 25 + Math.random() * 15,
+                color
+            });
+        }
+    },
+
+    updateHUD() {
+        const livesEl = document.getElementById("hud-lives");
+        livesEl.innerHTML = "";
+        for (let i = 0; i < 3; i++) {
+            const dot = document.createElement("span");
+            dot.className = `inline-block w-3 h-3 rounded-full ${i < this.player.lives ? "bg-rose-500 shadow" : "bg-slate-600"}`;
+            livesEl.appendChild(dot);
+        }
+        document.getElementById("hud-coins").textContent = this.player.coins;
+        document.getElementById("hud-stars").textContent = this.player.stars;
+        const req = this.level.gate.requireItems;
+        document.getElementById("hud-items").textContent = `${this.player.collectedItems.length}/${req}`;
+    },
+
+    // ========================================================================
+    // KEMAS KINI FIZIK, PERGERAKAN & PELANGGARAN (UPDATE LOOP)
+    // ========================================================================
+    update() {
+        if (this.paused) return;
+        this.time++;
+
+        const p = this.player;
+
+        // 1. Input mendatar
+        if (this.keys.left) {
+            p.vx = -p.speed;
+            p.facing = -1;
+            p.animTimer++;
+        } else if (this.keys.right) {
+            p.vx = p.speed;
+            p.facing = 1;
+            p.animTimer++;
+        } else {
+            p.vx *= 0.78;
+            if (Math.abs(p.vx) < 0.2) p.vx = 0;
+        }
+
+        // 2. Kemas kini Platform Bergerak
+        this.level.movingPlatforms.forEach(mp => {
+            const prevX = mp.x;
+            mp.x += mp.speed;
+            if (mp.x > mp.endX || mp.x < mp.startX) mp.speed *= -1;
+            mp.dx = mp.x - prevX;
+        });
+
+        // 3. Pergerakan Mendatar & Sempadan Dunia
+        p.x += p.vx;
+        if (p.x < 0) p.x = 0;
+        if (p.x + p.w > this.level.width) p.x = this.level.width - p.w;
+
+        // 4. Graviti & Pergerakan Menegak
+        const wasGrounded = p.grounded;
+        p.vy += p.gravity;
+        p.y += p.vy;
+        p.grounded = false;
+
+        // 5. Pengesanan Pelanggaran Platform (Collision Detection)
+        const allPlatforms = [...this.level.platforms, ...this.level.movingPlatforms];
+        for (const plat of allPlatforms) {
+            if (
+                p.x + p.w > plat.x + 4 &&
+                p.x < plat.x + plat.w - 4 &&
+                p.y + p.h >= plat.y &&
+                p.y + p.h - p.vy <= plat.y + 16 &&
+                p.vy >= 0
+            ) {
+                p.y = plat.y - p.h;
+                p.vy = 0;
+                p.grounded = true;
+                if (!wasGrounded) {
+                    this.spawnParticles(p.x + 16, p.y + p.h, "#CBD5E1", 5);
+                }
+                if (plat.dx) p.x += plat.dx;
+            }
+        }
+
+        // 6. Checkpoint
+        if (!p.checkpointReached && Math.abs(p.x - this.level.checkpoint.x) < 50) {
+            p.checkpointReached = true;
+            AudioFX.playCollect();
+            this.spawnParticles(this.level.checkpoint.x, this.level.checkpoint.y, "#34D399", 18);
+        }
+
+        // 7. Halangan / Jatuh Gaung
+        let hitHazard = p.y > this.level.height + 40;
+        for (const haz of this.level.hazards) {
+            if (p.x + p.w > haz.x && p.x < haz.x + haz.w && p.y + p.h > haz.y + 10) {
+                hitHazard = true;
+            }
+        }
+        if (hitHazard) {
+            this.hurtPlayer();
+        }
+
+        // 8. Kutipan Syiling, Bintang & Item
+        for (const item of this.level.collectibles) {
+            if (item.collected) continue;
+            const dist = Math.hypot((p.x + p.w / 2) - item.x, (p.y + p.h / 2) - item.y);
+            if (dist < 36) {
+                item.collected = true;
+                if (item.type === "coin") {
+                    p.coins++;
+                    AudioFX.playCoin();
+                    this.spawnParticles(item.x, item.y, "#FACC15", 8);
+                } else if (item.type === "star") {
+                    p.stars++;
+                    AudioFX.playCollect();
+                    this.spawnParticles(item.x, item.y, "#FBBF24", 15);
+                } else {
+                    p.collectedItems.push(item);
+                    AudioFX.playCollect();
+                    this.spawnParticles(item.x, item.y, "#38BDF8", 16);
+                    this.openModal(
+                        `Item Diperoleh: ${item.name}`,
+                        "ILMU AURAT",
+                        `<p>${item.info}</p>`,
+                        [{ text: "Teruskan Pengembaraan", style: "bg-emerald-500 text-slate-950", fn: () => this.closeModal() }]
+                    );
+                }
+                this.updateHUD();
+            }
+        }
+
+        // 9. Kesan Jarak Interaksi (NPC, Skrol & Pintu Gerbang)
+        this.activeInteractable = null;
+        for (const obj of this.level.interactables) {
+            if (Math.abs((p.x + p.w / 2) - (obj.x + 20)) < 68 && Math.abs(p.y - obj.y) < 85) {
+                this.activeInteractable = obj;
+            }
+        }
+        const g = this.level.gate;
+        if (Math.abs((p.x + p.w / 2) - (g.x + g.w / 2)) < 75 && Math.abs(p.y - g.y) < 100) {
+            this.activeInteractable = { type: "gate", data: g };
+        }
+
+        const promptEl = document.getElementById("interact-prompt");
+        if (this.activeInteractable) {
+            promptEl.classList.remove("hidden");
+        } else {
+            promptEl.classList.add("hidden");
+        }
+
+        // 10. Kemas kini Partikel & Daun Persekitaran
+        this.particles.forEach(pt => {
+            pt.x += pt.vx;
+            pt.y += pt.vy;
+            pt.vy += 0.2;
+            pt.life--;
+        });
+        this.particles = this.particles.filter(pt => pt.life > 0);
+
+        this.leaves.forEach(lf => {
+            lf.x += lf.vx;
+            lf.y += lf.vy + Math.sin(this.time * 0.03 + lf.x) * 0.2;
+            if (lf.x < 0) lf.x = this.level.width;
+            if (lf.y > this.level.height) lf.y = 0;
+        });
+
+        // 11. Kamera Mengikuti Pemain (Smooth Follow)
+        const targetCamX = p.x - this.width * 0.38;
+        this.camera.x += (targetCamX - this.camera.x) * 0.1;
+        this.camera.x = Math.max(0, Math.min(this.camera.x, this.level.width - this.width));
+    },
+
+    hurtPlayer() {
+        AudioFX.playHurt();
+        this.player.lives--;
+        this.updateHUD();
+        if (this.player.lives <= 0) {
+            this.openModal(
+                "Nyawa Habis!",
+                "CUBA LAGI",
+                "<p>Jangan berputus asa! Setiap pengembara hebat belajar daripada kesilapan. Mari cuba semula kawasan ini.</p>",
+                [{ text: "Ulang Kawasan Ini", style: "bg-amber-500 text-slate-950", fn: () => { this.closeModal(); this.restartLevel(); } }]
+            );
+            return;
+        }
+        const respawnPos = this.player.checkpointReached ? this.level.checkpoint : this.level.spawn;
+        this.player.x = respawnPos.x;
+        this.player.y = respawnPos.y - 40;
+        this.player.vx = 0;
+        this.player.vy = 0;
+    },
+
+    // ========================================================================
+    // SISTEM INTERAKSI DUNIA (SKROL, DRESS-UP WARDROBE, PUZZLE PADANAN & PINTU)
+    // ========================================================================
+    triggerInteract() {
+        if (this.paused || !this.activeInteractable) return;
+        const target = this.activeInteractable;
+
+        if (target.type === "scroll") {
+            AudioFX.playCollect();
+            this.openModal(
+                target.title,
+                "SKROL ILMU",
+                `<div class="bg-amber-500/10 border border-amber-400/40 p-4 rounded-2xl text-amber-100">${target.content}</div>`,
+                [{ text: "Faham!", style: "bg-emerald-500 text-slate-950", fn: () => this.closeModal() }]
+            );
+        } else if (target.type === "wardrobe_dressup") {
+            this.openWardrobeDressup(target);
+        } else if (target.type === "matching_puzzle") {
+            this.openMatchingPuzzle(target);
+        } else if (target.type === "gate") {
+            this.checkGate(target.data);
+        }
+    },
+
+    // Aktiviti Dress-Up Interaktif (Level 1)
+    openWardrobeDressup(npc) {
+        this.wardrobeSelection = { head: null, body: null, feet: null };
+        this.renderWardrobeModal(npc);
+    },
+
+    selectWardrobeItem(npcId, slot, itemId) {
+        const npc = this.level.interactables.find(i => i.id === npcId);
+        this.wardrobeSelection[slot] = itemId;
+        AudioFX.playCoin();
+        this.renderWardrobeModal(npc);
+    },
+
+    renderWardrobeModal(npc) {
+        let html = `<p class="mb-3 text-slate-200">"${npc.story}"</p>`;
+        html += `<div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-3">`;
+        npc.wardrobeItems.forEach(item => {
+            const isSel = this.wardrobeSelection[item.slot] === item.id;
+            html += `
+                <div onclick="GameEngine.selectWardrobeItem('${npc.id}', '${item.slot}', '${item.id}')"
+                     class="wardrobe-card ${isSel ? "selected" : ""} flex items-center justify-between">
+                    <div>
+                        <div class="text-[11px] uppercase tracking-wider text-sky-400 font-bold">${item.slot === "head" ? "Kepala" : item.slot === "body" ? "Badan" : "Kaki"}</div>
+                        <div class="font-bold text-sm text-white">${item.label}</div>
+                    </div>
+                    <span class="text-xs font-bold px-2 py-1 rounded ${isSel ? "bg-emerald-500 text-slate-950" : "bg-slate-700 text-slate-300"}">
+                        ${isSel ? "Dipakai" : "Pilih"}
+                    </span>
+                </div>
+            `;
+        });
+        html += `</div><div id="wardrobe-feedback" class="hidden p-3 rounded-xl text-sm font-bold"></div>`;
+
+        this.openModal(
+            npc.name,
+            "AKTIVITI DRESS-UP",
+            html,
+            [
+                { text: "Tutup", style: "bg-slate-700 text-white", fn: () => this.closeModal() },
+                { text: "Sahkan Pakaian Aisyah", style: "bg-emerald-500 text-slate-950", fn: () => this.verifyWardrobe(npc.id) }
+            ]
+        );
+    },
+
+    verifyWardrobe(npcId) {
+        const npc = this.level.interactables.find(i => i.id === npcId);
+        const fb = document.getElementById("wardrobe-feedback");
+        fb.classList.remove("hidden");
+
+        const selHead = npc.wardrobeItems.find(i => i.id === this.wardrobeSelection.head);
+        const selBody = npc.wardrobeItems.find(i => i.id === this.wardrobeSelection.body);
+        const selFeet = npc.wardrobeItems.find(i => i.id === this.wardrobeSelection.feet);
+
+        if (!selHead || !selBody || !selFeet) {
+            AudioFX.playHurt();
+            fb.className = "p-3 rounded-xl text-sm font-bold bg-amber-500/20 border border-amber-400 text-amber-300";
+            fb.textContent = "Sila pilih lengkap pakaian untuk bahagian Kepala, Badan dan Kaki terlebih dahulu!";
+            return;
+        }
+
+        if (selHead.valid && selBody.valid && selFeet.valid) {
+            AudioFX.playLevelWin();
+            npc.solved = true;
+            fb.className = "p-3 rounded-xl text-sm font-bold bg-emerald-500/20 border border-emerald-400 text-emerald-300";
+            fb.textContent = npc.successMsg;
+            setTimeout(() => this.closeModal(), 1700);
+        } else {
+            AudioFX.playHurt();
+            fb.className = "p-3 rounded-xl text-sm font-bold bg-rose-500/20 border border-rose-400 text-rose-300";
+            fb.textContent = "Masih ada bahagian aurat yang terdedah! Pastikan rambut, lengan dan kaki ditutup dengan sopan.";
+        }
+    },
+
+    // Aktiviti Puzzle Padanan Situasi (Level 3 & Level 4)
+    openMatchingPuzzle(puzzleObj) {
+        this.puzzleSelection = {};
+        let html = `<p class="mb-3 text-slate-200">${puzzleObj.instruction}</p><div class="space-y-3 mb-3">`;
+        puzzleObj.pairs.forEach((pair, idx) => {
+            html += `
+                <div class="bg-slate-800/90 border border-slate-700 p-3 rounded-2xl">
+                    <div class="font-bold text-amber-300 text-sm mb-2">${pair.situation}</div>
+                    <select id="puzzle-select-${idx}" class="w-full bg-slate-900 border-2 border-slate-600 rounded-xl p-2 text-sm text-white font-bold">
+                        <option value="-1">-- Klik untuk pilih padanan --</option>
+                        ${pair.choices.map((c, cIdx) => `<option value="${cIdx}">${c}</option>`).join("")}
+                    </select>
+                </div>
+            `;
+        });
+        html += `</div><div id="puzzle-feedback" class="hidden p-3 rounded-xl text-sm font-bold"></div>`;
+
+        this.openModal(
+            puzzleObj.name,
+            "PUZZLE PENJAGA PINTU",
+            html,
+            [
+                { text: "Tutup", style: "bg-slate-700 text-white", fn: () => this.closeModal() },
+                { text: "Buka Kunci Puzzle", style: "bg-emerald-500 text-slate-950", fn: () => this.verifyMatchingPuzzle(puzzleObj.id) }
+            ]
+        );
+    },
+
+    verifyMatchingPuzzle(puzzleId) {
+        const puzzleObj = this.level.interactables.find(i => i.id === puzzleId);
+        const fb = document.getElementById("puzzle-feedback");
+        fb.classList.remove("hidden");
+
+        let allCorrect = true;
+        puzzleObj.pairs.forEach((pair, idx) => {
+            const val = parseInt(document.getElementById(`puzzle-select-${idx}`).value, 10);
+            if (val !== pair.correctIndex) allCorrect = false;
+        });
+
+        if (allCorrect) {
+            AudioFX.playLevelWin();
+            puzzleObj.solved = true;
+            fb.className = "p-3 rounded-xl text-sm font-bold bg-emerald-500/20 border border-emerald-400 text-emerald-300";
+            fb.textContent = puzzleObj.successMsg;
+            setTimeout(() => this.closeModal(), 1600);
+        } else {
+            AudioFX.playHurt();
+            fb.className = "p-3 rounded-xl text-sm font-bold bg-rose-500/20 border border-rose-400 text-rose-300";
+            fb.textContent = "Susunan padanan belum tepat! Semak semula batas aurat lelaki (pusat hingga lutut) dan perempuan (seluruh tubuh kecuali muka dan tapak tangan).";
+        }
+    },
+
+    isGateUnlocked() {
+        const g = this.level.gate;
+        const hasItems = this.player.collectedItems.length >= g.requireItems;
+        let npcOk = true;
+        if (g.requireNpcSolved) {
+            const npc = this.level.interactables.find(i => i.id === g.requireNpcSolved);
+            npcOk = npc && npc.solved;
+        }
+        return hasItems && npcOk;
+    },
+
+    checkGate(gate) {
+        if (!this.isGateUnlocked()) {
+            AudioFX.playHurt();
+            this.openModal(
+                "Laluan Masih Berkunci",
+                "MISI BELUM LENGKAP",
+                `<p>${gate.lockedMsg}</p>`,
+                [{ text: "Baik, Saya Cari Sekarang!", style: "bg-amber-500 text-slate-950", fn: () => this.closeModal() }]
+            );
+            return;
+        }
+
+        AudioFX.playLevelWin();
+        const nextIdx = this.currentLevelIdx + 1;
+        if (nextIdx < WORLD_DATA.length) {
+            this.openModal(
+                `${this.level.name} SELESAI!`,
+                "TAHNIAH PENGEMBARA",
+                `<p>Kamu berjaya membuka gerbang dan menguasai ilmu penjagaan aurat di kawasan ini! Sedia untuk meneroka dunia seterusnya?</p>`,
+                [{ text: "Teruskan ke Dunia Seterusnya ▶", style: "bg-emerald-500 text-slate-950", fn: () => { this.closeModal(); this.loadLevel(nextIdx); } }]
+            );
+        } else {
+            this.openModal(
+                "GELARAN: WIRA AURAT KERAJAAN!",
+                "PENGEMBARAAN TAMAT",
+                `<div class="text-center space-y-2">
+                    <p class="text-lg font-bold text-amber-300">SYABAS! Kamu telah menamatkan kesemua 4 dunia!</p>
+                    <p>Syiling Dikumpul: <strong>${this.player.coins}</strong> • Bintang Dikumpul: <strong>${this.player.stars}</strong></p>
+                    <p class="text-sm text-slate-300">Teruskan mengamalkan pakaian sopan dan menutup aurat dalam kehidupan seharian!</p>
+                </div>`,
+                [{ text: "Main Semula Dari Awal", style: "bg-amber-500 text-slate-950", fn: () => { this.closeModal(); this.startGame(0); } }]
+            );
+        }
+    },
+
+    openModal(title, tag, bodyHTML, buttons) {
+        this.paused = true;
+        document.getElementById("modal-title").textContent = title;
+        document.getElementById("modal-tag").textContent = tag;
+        document.getElementById("modal-body").innerHTML = bodyHTML;
+        const actEl = document.getElementById("modal-actions");
+        actEl.innerHTML = "";
+        buttons.forEach(b => {
+            const btn = document.createElement("button");
+            btn.className = `game-btn px-5 py-2.5 text-sm sm:text-base font-bold ${b.style}`;
+            btn.textContent = b.text;
+            btn.onclick = b.fn;
+            actEl.appendChild(btn);
+        });
+        const modal = document.getElementById("interaction-modal");
+        modal.classList.remove("hidden");
+        modal.classList.add("flex");
+    },
+
+    closeModal() {
+        const modal = document.getElementById("interaction-modal");
+        modal.classList.add("hidden");
+        modal.classList.remove("flex");
+        this.paused = false;
+    },
+
+    // ========================================================================
+    // LUKISAN DUNIA BERLAPIS 2.5D (PARALLAX BACKGROUND, KEDALAMAN & ENTITI)
+    // ========================================================================
+    render() {
+        const ctx = this.ctx;
+        const theme = this.level.theme;
+
+        // 1. Latar Belakang Langit Mengikut Tema Dunia
+        const skyGrad = ctx.createLinearGradient(0, 0, 0, this.height);
+        if (theme === "village") {
+            skyGrad.addColorStop(0, "#0284C7");
+            skyGrad.addColorStop(1, "#BAE6FD");
+        } else if (theme === "cave") {
+            skyGrad.addColorStop(0, "#0F172A");
+            skyGrad.addColorStop(1, "#312E81");
+        } else if (theme === "castle") {
+            skyGrad.addColorStop(0, "#D97706");
+            skyGrad.addColorStop(1, "#FEF3C7");
+        } else {
+            skyGrad.addColorStop(0, "#3B0764");
+            skyGrad.addColorStop(1, "#A855F7");
+        }
+        ctx.fillStyle = skyGrad;
+        ctx.fillRect(0, 0, this.width, this.height);
+
+        // 2. Lapisan Parallax Bukit / Siluet Istana & Awan
+        ctx.save();
+        const parallaxX = -this.camera.x * 0.25;
+        ctx.fillStyle = theme === "cave" ? "rgba(15, 23, 42, 0.55)" : "rgba(255, 255, 255, 0.28)";
+        for (let i = 0; i < 9; i++) {
+            const hx = parallaxX + i * 420;
+            ctx.beginPath();
+            ctx.arc(hx + 180, this.height - 80, 220, Math.PI, 0);
+            ctx.fill();
+        }
+        if (theme !== "cave") {
+            ctx.fillStyle = "rgba(255, 255, 255, 0.65)";
+            for (let i = 0; i < 10; i++) {
+                const cx = ((i * 380 + this.time * 0.35 - this.camera.x * 0.15) % 3500);
+                ctx.beginPath();
+                ctx.arc(cx, 110 + (i % 3) * 45, 32, 0, Math.PI * 2);
+                ctx.arc(cx + 28, 105 + (i % 3) * 45, 38, 0, Math.PI * 2);
+                ctx.arc(cx + 58, 112 + (i % 3) * 45, 28, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+        ctx.restore();
+
+        // 3. Transformasi Kamera Dunia Utama
+        ctx.save();
+        const verticalOffset = Math.max(0, this.height - this.level.height);
+        ctx.translate(-this.camera.x, verticalOffset);
+
+        // Lukis Platform dengan efek kedalaman 2.5D (top bevel)
+        const allPlatforms = [...this.level.platforms, ...this.level.movingPlatforms];
+        allPlatforms.forEach(plat => {
+            if (plat.type === "ground") {
+                ctx.fillStyle = "#78350F";
+                ctx.fillRect(plat.x, plat.y, plat.w, plat.h);
+                ctx.fillStyle = "#16A34A";
+                ctx.fillRect(plat.x, plat.y, plat.w, 16);
+                ctx.fillStyle = "#4ADE80";
+                ctx.fillRect(plat.x, plat.y, plat.w, 5);
+            } else if (plat.type === "wood" || plat.type === "bridge") {
+                ctx.fillStyle = "#92400E";
+                ctx.beginPath();
+                ctx.roundRect(plat.x, plat.y, plat.w, plat.h, 8);
+                ctx.fill();
+                ctx.fillStyle = "#D97706";
+                ctx.fillRect(plat.x + 4, plat.y + 2, plat.w - 8, 6);
+            } else if (plat.type === "secret") {
+                ctx.fillStyle = "rgba(56, 189, 248, 0.85)";
+                ctx.beginPath();
+                ctx.roundRect(plat.x, plat.y, plat.w, plat.h, 8);
+                ctx.fill();
+            } else if (plat.type === "stone") {
+                ctx.fillStyle = "#475569";
+                ctx.beginPath();
+                ctx.roundRect(plat.x, plat.y, plat.w, plat.h, 8);
+                ctx.fill();
+                ctx.fillStyle = "#94A3B8";
+                ctx.fillRect(plat.x + 4, plat.y, plat.w - 8, 6);
+            } else if (plat.type === "marble") {
+                ctx.fillStyle = "#E2E8F0";
+                ctx.beginPath();
+                ctx.roundRect(plat.x, plat.y, plat.w, plat.h, 8);
+                ctx.fill();
+                ctx.fillStyle = "#FFFFFF";
+                ctx.fillRect(plat.x + 4, plat.y, plat.w - 8, 6);
+            } else {
+                ctx.fillStyle = "#D97706";
+                ctx.beginPath();
+                ctx.roundRect(plat.x, plat.y, plat.w, plat.h, 8);
+                ctx.fill();
+                ctx.fillStyle = "#FDE047";
+                ctx.fillRect(plat.x + 4, plat.y, plat.w - 8, 6);
+            }
+        });
+
+        // Lukis Halangan (Air Berombak / Duri Gua)
+        this.level.hazards.forEach(haz => {
+            if (haz.type === "water") {
+                const wave = Math.sin(this.time * 0.1) * 4;
+                ctx.fillStyle = "rgba(14, 165, 233, 0.85)";
+                ctx.fillRect(haz.x, haz.y + wave, haz.w, haz.h - wave);
+            } else {
+                ctx.fillStyle = "#EF4444";
+                for (let sx = haz.x; sx < haz.x + haz.w; sx += 24) {
+                    ctx.beginPath();
+                    ctx.moveTo(sx, haz.y + haz.h);
+                    ctx.lineTo(sx + 12, haz.y);
+                    ctx.lineTo(sx + 24, haz.y + haz.h);
+                    ctx.fill();
+                }
+            }
+        });
+
+        // Lukis Daun / Cahaya Persekitaran
+        ctx.fillStyle = theme === "cave" ? "rgba(165, 180, 252, 0.5)" : "rgba(254, 240, 138, 0.65)";
+        this.leaves.forEach(lf => {
+            ctx.beginPath();
+            ctx.arc(lf.x, lf.y, lf.size, 0, Math.PI * 2);
+            ctx.fill();
+        });
+
+        // Lukis Bendera Checkpoint
+        const cp = this.level.checkpoint;
+        ctx.fillStyle = "#94A3B8";
+        ctx.fillRect(cp.x, cp.y - 45, 4, 45);
+        ctx.fillStyle = this.player.checkpointReached ? "#10B981" : "#64748B";
+        ctx.beginPath();
+        ctx.moveTo(cp.x + 4, cp.y - 45);
+        ctx.lineTo(cp.x + 30, cp.y - 35);
+        ctx.lineTo(cp.x + 4, cp.y - 25);
+        ctx.fill();
+
+        // Lukis Pintu Gerbang
+        SpriteRenderer.drawGate(ctx, this.level.gate, this.isGateUnlocked(), this.time);
+
+        // Lukis Skrol, NPC & Meja Puzzle
+        this.level.interactables.forEach(obj => {
+            if (obj.type === "scroll") SpriteRenderer.drawScroll(ctx, obj, this.time);
+            else SpriteRenderer.drawInteractableEntity(ctx, obj, this.time);
+        });
+
+        // Lukis Syiling, Bintang & Item
+        this.level.collectibles.forEach(item => SpriteRenderer.drawCollectible(ctx, item, this.time));
+
+        // Lukis Watak Utama
+        SpriteRenderer.drawPlayer(ctx, this.player);
+
+        // Lukis Partikel Kesan Khas
+        this.particles.forEach(pt => {
+            ctx.fillStyle = pt.color;
+            ctx.globalAlpha = Math.max(0, pt.life / 35);
+            ctx.beginPath();
+            ctx.arc(pt.x, pt.y, 4, 0, Math.PI * 2);
+            ctx.fill();
+        });
+        ctx.globalAlpha = 1;
+
+        ctx.restore();
+    },
+
+    loop() {
+        if (!this.running) return;
+        this.update();
+        this.render();
+        requestAnimationFrame(() => this.loop());
+    }
+};
+
+window.addEventListener("DOMContentLoaded", () => {
+    GameEngine.init();
+});
+</script>
+</body>
+</html>
